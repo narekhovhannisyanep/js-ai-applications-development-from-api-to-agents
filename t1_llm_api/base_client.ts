@@ -22,12 +22,15 @@ class AIClient {
     public endpoint: string,
     public modelName: string,
     public apiKey: string,
-    public systemPrompt: string
+    public systemPrompt: string,
   ) {
     if (!apiKey) {
-      throw new Error("API key cannot be null or empty")
+      throw new Error("API key is required!");
     }
-
+    this.endpoint = endpoint;
+    this.modelName = modelName;
+    this.apiKey = apiKey;
+    this.systemPrompt = systemPrompt;
   }
 
   /**
@@ -50,7 +53,7 @@ class AIClient {
    */
   streamResponse = async (messages: Array<Message>): Promise<Message> => {
     throw new Error("Method not implemented.");
-  }
+  };
 }
 
 export default AIClient;
