@@ -1,7 +1,6 @@
 import { BaseOpenAiClient } from "../base";
 
 import { Message, Role } from "../../../commons";
-import { privateEncrypt } from "node:crypto";
 
 /**
  * Custom HTTP client for OpenAI Chat Completions API.
@@ -134,6 +133,7 @@ export class CustomOpenAIClient extends BaseOpenAiClient {
       return new Message(Role.ASSISTANT, deltaContents.join(""));
     } catch (err) {
       console.error(err);
+      throw err;
     }
   };
 
