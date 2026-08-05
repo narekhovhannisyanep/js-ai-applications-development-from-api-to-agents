@@ -1,6 +1,7 @@
 import { BaseOpenAiClient } from "../base";
 
 import { Message, Role } from "../../../commons";
+import { privateEncrypt } from "node:crypto";
 
 /**
  * Custom HTTP client for OpenAI Chat Completions API.
@@ -75,7 +76,65 @@ export class CustomOpenAIClient extends BaseOpenAiClient {
     // - Read the SSE stream (each line starts with "data: ", ends with "[DONE]")
     // - Parse chunks and write to stdout using this._getContentSnippet(data)
     // - Return the assembled ASSISTANT Message
-    throw new Error("Not implemented.");
+    const inputMessages = [
+      ...messages,
+      { role: Role.ASSISTANT, content: this.systemPrompt },
+    ];
+    const headers = {
+      Authorization: this.apiKey,
+      "Content-Type": "application/json",
+    };
+    const requestData = {
+      model: this.modelName,
+      messages: inputMessages,
+      temperature: 0.8,
+      stream: true,
+    };
+
+    try {
+      const response = await fetch(this.endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestData),
+      });
+
+      if (response.status !== 200) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      if (!response.body) {
+        throw new Error("HTTP, Missing body!");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      const deltaContents: Array<string> = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6);
+          if (data === "[DONE]") break;
+          const deltaContent = this._getContentSnippet(data.trim());
+          process.stdout.write(deltaContent);
+          deltaContents.push(deltaContent);
+        }
+      }
+
+      process.stdout.write("\n");
+      return new Message(Role.ASSISTANT, deltaContents.join(""));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   /**
@@ -85,10 +144,17 @@ export class CustomOpenAIClient extends BaseOpenAiClient {
    * @returns The content text from the chunk, or empty string if no content.
    */
   private _getContentSnippet = (data: string): string => {
-    //TODO:
-    // - Parse data as JSON
-    // - Extract choices[0].delta.content
-    // - Return it, or '' if not present
-    throw new Error("Not implemented.");
+    interface StreamingDelta {
+      object: string;
+      choices: { delta: { content: string } }[];
+    }
+
+    const parsedData = JSON.parse(data) as StreamingDelta;
+
+    if (parsedData.object === "chat.completion.chunk") {
+      return parsedData.choices[0].delta.content ?? "";
+    }
+
+    return "";
   };
 }
