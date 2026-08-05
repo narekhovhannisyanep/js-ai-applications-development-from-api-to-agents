@@ -28,7 +28,7 @@ export async function start(stream: boolean, client: AIClient) {
   console.log("Type your question or 'exit' to quit.");
 
   while (true) {
-    const input = await rl.question("➡️. ");
+    const input = await rl.question("➡️  ");
 
     if (input === "exit") {
       console.log("Exiting the chat. Goodby!");
