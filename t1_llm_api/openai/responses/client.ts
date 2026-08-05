@@ -1,4 +1,5 @@
 import { OpenAI } from "openai";
+import { Stream } from "openai/streaming";
 
 import { BaseOpenAiClient } from "../base";
 
@@ -18,12 +19,7 @@ export class OpenAIResponsesClient extends BaseOpenAiClient {
 
   constructor(...args: ConstructorParameters<typeof BaseOpenAiClient>) {
     super(...args);
-    //TODO:
-    // - Initialize the OpenAI SDK client https://github.com/openai/openai-node
-    // Note: `this.apiKey` already contains the 'Bearer ' prefix (added by BaseOpenAiClient).
-    //       The OpenAI SDK adds its own 'Bearer ' prefix, so strip it first:
-    //       `this.client = new OpenAI({ apiKey: this.apiKey.replace(/^Bearer /, '') })`
-    throw new Error("Not implemented.");
+    this.client = new OpenAI({ apiKey: this.apiKey.replace(/^Bearer /, "") });
   }
 
   /**
@@ -33,12 +29,16 @@ export class OpenAIResponsesClient extends BaseOpenAiClient {
    * @returns The AI response as a single message.
    */
   response = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // - Prepare input messages
-    // - Call the SDK client (use instructions for system prompt)
-    // - Print the response to console
-    // - Return an ASSISTANT Message
-    throw new Error("Not implemented.");
+    const response = await this.client.responses.create({
+      model: this.modelName,
+      instructions: this.systemPrompt,
+      input: messages as OpenAI.Responses.ResponseInput,
+    });
+
+    const content = response.output_text ?? "";
+
+    console.log(content);
+    return new Message(Role.ASSISTANT, content);
   };
 
   /**
@@ -51,11 +51,23 @@ export class OpenAIResponsesClient extends BaseOpenAiClient {
    * @returns The final aggregated AI message after the stream completes.
    */
   streamResponse = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // - Prepare input messages
-    // - Call the SDK client with streaming enabled
-    // - Listen for 'response.output_text.delta' events and write to stdout
-    // - Return the assembled ASSISTANT Message
-    throw new Error("Not implemented.");
+    const stream = await this.client.responses.create({
+      model: this.modelName,
+      stream: true,
+      instructions: this.systemPrompt,
+      input: messages as OpenAI.Responses.ResponseInput,
+    });
+
+    const deltaContents = [];
+    for await (const event of stream) {
+      if (event.type === "response.output_text.delta") {
+        const deltaContent = event.delta ?? "";
+        process.stdout.write(deltaContent);
+        deltaContents.push(deltaContent);
+      }
+    }
+
+    process.stdout.write("\n");
+    return new Message(Role.ASSISTANT, deltaContents.join());
   };
 }
