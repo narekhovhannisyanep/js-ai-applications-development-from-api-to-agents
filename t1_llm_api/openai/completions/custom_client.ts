@@ -10,7 +10,6 @@ import { Message, Role } from "../../../commons";
  * handle its Server-Sent Events (SSE) streaming format.
  */
 export class CustomOpenAIClient extends BaseOpenAiClient {
-
   /**
    * Sends a non-streaming request using a raw HTTP POST to the Chat Completions API.
    *
@@ -18,15 +17,44 @@ export class CustomOpenAIClient extends BaseOpenAiClient {
    * @returns The AI response as a single message.
    */
   response = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // https://platform.openai.com/docs/api-reference/chat/create
-    // - Prepare headers with authorization and content type
-    // - Prepare message history with the system prompt
-    // - Execute POST request to the API (use fetch)
-    // - Parse the response
-    // - Print the response to console
-    // - Return an ASSISTANT Message
-    throw new Error("Not implemented.");
+    const inputMessages = [
+      ...messages,
+      { role: Role.ASSISTANT, content: this.systemPrompt },
+    ];
+    const headers = {
+      Authorization: this.apiKey,
+      "Content-Type": "application/json",
+    };
+    const requestData = {
+      model: this.modelName,
+      messages: inputMessages,
+      temperature: 0.8,
+    };
+
+    try {
+      const response = await fetch(this.endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error! Status: ${response.status}`);
+      }
+
+      interface ChatCompletionResponse {
+        choices: { message: { content: string } }[];
+      }
+
+      const data = (await response.json()) as ChatCompletionResponse;
+      const message = data?.choices[0]?.message?.content;
+      console.log(message);
+
+      return new Message(Role.ASSISTANT, message);
+    } catch (err) {
+      console.error("HTTP Request failed:", err);
+      throw err;
+    }
   };
 
   /**
