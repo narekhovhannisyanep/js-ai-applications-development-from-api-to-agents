@@ -1,5 +1,7 @@
 import { GoogleGenAI, Content } from "@google/genai";
 
+import { inspect } from "util";
+
 import AIClient from "../base_client";
 
 import { Message, Role } from "../../commons";
@@ -14,6 +16,7 @@ import { Message, Role } from "../../commons";
  */
 export class GeminiAICLient extends AIClient {
   client: GoogleGenAI;
+  private currentInteractionId: string | undefined = undefined;
 
   /**
    * Initialize the Gemini client with the official SDK.
@@ -22,9 +25,7 @@ export class GeminiAICLient extends AIClient {
    */
   constructor(...args: ConstructorParameters<typeof AIClient>) {
     super(...args);
-    //TODO:
-    // - Initialize the Google GenAI SDK client https://ai.google.dev/gemini-api/docs/text-generation#javascript
-    throw new Error("Not implemented.");
+    this.client = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
   /**
@@ -37,12 +38,30 @@ export class GeminiAICLient extends AIClient {
    * The response is printed to stdout before being returned.
    */
   response = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // - Convert messages to Gemini Content format using this.convertToGeminiContent(messages)
-    // - Call the SDK client (use systemInstruction for system prompt)
-    // - Print the response to console
-    // - Return an ASSISTANT Message
-    throw new Error("Not implemented.");
+    const response = await this.client.interactions.create({
+      model: this.modelName,
+      input: messages.at(-1)?.content ?? "",
+      system_instruction: this.systemPrompt,
+      previous_interaction_id: this.currentInteractionId,
+      generation_config: {
+        temperature: 0.7,
+      },
+    });
+
+    this.currentInteractionId = response.id;
+
+    for (const step of response.steps || []) {
+      if (step.type === "model_output") {
+        for (const contentPart of step.content || []) {
+          if (contentPart.type === "text") {
+            console.log(contentPart.text);
+            return new Message("model", contentPart.text);
+          }
+        }
+      }
+    }
+
+    return new Message("model", "");
   };
 
   /**
@@ -63,18 +82,6 @@ export class GeminiAICLient extends AIClient {
     // - Call the SDK client with streaming (use systemInstruction for system prompt)
     // - Iterate over stream chunks and write to stdout
     // - Return the assembled ASSISTANT Message
-    throw new Error("Not implemented.");
-  };
-
-  /**
-   * Convert Message objects to Gemini Content format.
-   *
-   * @param messages The conversation messages to convert.
-   * @returns Messages in Gemini's Content format.
-   */
-  private convertToGeminiContent = (messages: Array<Message>): Content[] => {
-    //TODO:
-    // - Map each message to a Content object with role and parts
     throw new Error("Not implemented.");
   };
 }
