@@ -67,14 +67,6 @@ export class CustomOpenAIClient extends BaseOpenAiClient {
    * @returns The final aggregated AI message after the stream completes.
    */
   streamResponse = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // https://platform.openai.com/docs/api-reference/chat/create (Streaming tab)
-    // - Prepare headers with authorization and content type
-    // - Prepare message history with the system prompt
-    // - Execute POST request with stream: true
-    // - Read the SSE stream (each line starts with "data: ", ends with "[DONE]")
-    // - Parse chunks and write to stdout using this._getContentSnippet(data)
-    // - Return the assembled ASSISTANT Message
     const inputMessages = [
       ...messages,
       { role: Role.ASSISTANT, content: this.systemPrompt },
