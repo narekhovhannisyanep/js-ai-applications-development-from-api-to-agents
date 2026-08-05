@@ -17,6 +17,5 @@ export class BaseOpenAiClient extends AIClient {
    */
   constructor(...args: ConstructorParameters<typeof AIClient>) {
     super(...args);
-    this.apiKey = `Bearer ${this.apiKey}`;
   }
 }

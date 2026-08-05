@@ -22,4 +22,4 @@ const openAICustomClient = new CustomOpenAIResponsesClient(
   DEFAULT_SYSTEM_PROMPT,
 );
 
-start(false, openAICustomClient);
+start(false, openAIClient);
