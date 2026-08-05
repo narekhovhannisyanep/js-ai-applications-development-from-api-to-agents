@@ -1,7 +1,5 @@
 import { GoogleGenAI, Content } from "@google/genai";
 
-import { inspect } from "util";
-
 import AIClient from "../base_client";
 
 import { Message, Role } from "../../commons";
@@ -77,11 +75,33 @@ export class GeminiAICLient extends AIClient {
    * Each chunk's text is printed to stdout as it arrives.
    */
   streamResponse = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // - Convert messages to Gemini Content format using this.convertToGeminiContent(messages)
-    // - Call the SDK client with streaming (use systemInstruction for system prompt)
-    // - Iterate over stream chunks and write to stdout
-    // - Return the assembled ASSISTANT Message
-    throw new Error("Not implemented.");
+    const stream = await this.client.interactions.create({
+      model: this.modelName,
+      input: messages.at(-1)?.content ?? "",
+      system_instruction: this.systemPrompt,
+      previous_interaction_id: this.currentInteractionId,
+      stream: true,
+      generation_config: {
+        temperature: 0.6,
+      },
+    });
+
+    const components = [];
+
+    for await (const event of stream) {
+      if (event.event_type === "interaction.created") {
+        this.currentInteractionId = event.interaction.id;
+        continue;
+      }
+
+      if (event.event_type === "step.delta" && event.delta.type === "text") {
+        components.push(event.delta.text);
+        process.stdout.write(event.delta.text);
+      }
+    }
+
+    process.stdout.write("\n");
+
+    return new Message("model", components.join());
   };
 }
