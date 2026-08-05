@@ -17,14 +17,9 @@ export class OpenAIClient extends BaseOpenAiClient {
 
   constructor(...args: ConstructorParameters<typeof BaseOpenAiClient>) {
     super(...args);
-    //TODO:
-    // - Initialize the OpenAI SDK client https://github.com/openai/openai-node
-    // Useful link with request/response samples:
-    //   https://platform.openai.com/docs/api-reference/chat/create
-    // Note: `this.apiKey` already contains the 'Bearer ' prefix (added by BaseOpenAiClient).
-    //       The OpenAI SDK adds its own 'Bearer ' prefix, so strip it first:
-    //       `this.client = new OpenAI({ apiKey: this.apiKey.replace(/^Bearer /, '') })`
-    throw new Error("Not implemented.");
+    this.client = new OpenAI({
+      apiKey: this.apiKey.replace(/^Bearer /, ""),
+    });
   }
 
   /**
@@ -34,12 +29,19 @@ export class OpenAIClient extends BaseOpenAiClient {
    * @returns The AI response as a single message.
    */
   response = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // - Prepare message history with the system prompt
-    // - Call the SDK client
-    // - Print the response to console
-    // - Return an ASSISTANT Message
-    throw new Error("Not implemented.");
+    const inputMessages = [
+      ...messages,
+      { role: Role.SYSTEM, content: this.systemPrompt },
+    ];
+
+    const completion = await this.client.chat.completions.create({
+      model: this.modelName,
+      messages: inputMessages as OpenAI.ChatCompletionMessageParam[],
+    });
+
+    const content = completion.choices[0].message.content ?? "";
+    console.log(content);
+    return new Message(Role.ASSISTANT, content);
   };
 
   /**
