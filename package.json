@@ -57,35 +57,35 @@
   },
   "homepage": "https://github.com/epam/js-ai-applications-development-from-api-to-agents#readme",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.78.0",
-    "@google/genai": "^1.45.0",
-    "@langchain/community": "^1.1.24",
-    "@langchain/openai": "^1.3.0",
-    "@modelcontextprotocol/sdk": "^1.27.1",
-    "chromadb": "^3.4.0",
-    "cors": "^2.8.5",
+    "@anthropic-ai/sdk": "^0.115.0",
+    "@google/genai": "^2.15.0",
+    "@langchain/community": "^1.1.29",
+    "@langchain/openai": "^1.5.5",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "chromadb": "^3.5.0",
+    "cors": "^2.8.6",
     "express": "^5.2.1",
     "faiss-node": "^0.5.1",
-    "jose": "^6.2.2",
-    "langchain": "^1.2.33",
-    "openai": "^6.27.0",
-    "pg": "^8.20.0",
-    "redis": "^4.7.0",
-    "uuid": "^11.1.0"
+    "jose": "^6.2.8",
+    "langchain": "^1.5.4",
+    "openai": "^7.4.0",
+    "pg": "^8.22.0",
+    "redis": "^6.2.0",
+    "uuid": "^14.0.1"
   },
   "overrides": {
     "openai": "$openai"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.3",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^25.4.0",
-    "@types/pg": "^8.18.0",
-    "@typescript-eslint/parser": "^8.59.0",
-    "eslint": "^9.39.4",
+    "@types/node": "^26.1.2",
+    "@types/pg": "^8.20.4",
+    "@typescript-eslint/parser": "^8.66.0",
+    "eslint": "^10.8.0",
     "eslint-plugin-import": "^2.32.0",
-    "tsx": "^4.21.0",
-    "typescript": "^5.8.2"
+    "tsx": "^4.23.8",
+    "typescript": "^7.0.2"
   }
 }
