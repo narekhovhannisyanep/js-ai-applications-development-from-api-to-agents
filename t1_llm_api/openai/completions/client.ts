@@ -54,11 +54,27 @@ export class OpenAIClient extends BaseOpenAiClient {
    * @returns The final aggregated AI message after the stream completes.
    */
   streamResponse = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // - Prepare message history with the system prompt
-    // - Call the SDK client with streaming enabled
-    // - Iterate over stream chunks and write to stdout
-    // - Return the assembled ASSISTANT Message
-    throw new Error("Not implemented.");
+    const inputMessages = [
+      ...messages,
+      { role: Role.ASSISTANT, content: this.systemPrompt },
+    ];
+    const stream = await this.client.chat.completions.create({
+      model: this.modelName,
+      messages: inputMessages as OpenAI.ChatCompletionMessageParam[],
+      stream: true,
+    });
+
+    const deltaContents: Array<string> = [];
+
+    for await (const chunk of stream) {
+      const deltaContent = chunk?.choices[0]?.delta?.content;
+      if (deltaContent) {
+        process.stdout.write(deltaContent);
+        deltaContents.push(deltaContent);
+      }
+    }
+    process.stdout.write("\n");
+
+    return new Message(Role.ASSISTANT, deltaContents.join(""));
   };
 }
