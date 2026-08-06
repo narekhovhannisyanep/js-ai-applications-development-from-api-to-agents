@@ -5,19 +5,20 @@ import {
   OPENAI_API_KEY,
   OPENAI_CHAT_COMPLETIONS_ENDPOINT,
   DEFAULT_SYSTEM_PROMPT,
+  GPT_5_4_NANO,
 } from "../../../commons";
 import { start } from "../../base_app";
 
 const openAIClient = new OpenAIClient(
   OPENAI_CHAT_COMPLETIONS_ENDPOINT,
-  "gpt-5.4-nano",
+  GPT_5_4_NANO,
   OPENAI_API_KEY,
   DEFAULT_SYSTEM_PROMPT,
 );
 
 const openAICustomClient = new CustomOpenAIClient(
   OPENAI_CHAT_COMPLETIONS_ENDPOINT,
-  "gpt-5.4-nano",
+  GPT_5_4_NANO,
   OPENAI_API_KEY,
   DEFAULT_SYSTEM_PROMPT,
 );

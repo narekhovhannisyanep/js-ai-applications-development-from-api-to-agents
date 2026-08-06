@@ -6,18 +6,19 @@ import {
   DEFAULT_SYSTEM_PROMPT,
   GEMINI_ENDPOINT,
   GEMINI_API_KEY,
+  GEMINI_3_5_FLASH_LITE,
 } from "../../commons";
 
 const geminiClient = new GeminiAICLient(
   GEMINI_ENDPOINT,
-  "gemini-3.5-flash-lite",
+  GEMINI_3_5_FLASH_LITE,
   GEMINI_API_KEY,
   DEFAULT_SYSTEM_PROMPT,
 );
 
 const geminiCustomClient = new CustomGeminiAIClient(
   GEMINI_ENDPOINT,
-  "gemini-3.5-flash-lite",
+  GEMINI_3_5_FLASH_LITE,
   GEMINI_API_KEY,
   DEFAULT_SYSTEM_PROMPT,
 );
