@@ -48,7 +48,9 @@ export class AnthropicAIClient extends AIClient {
       cache_control: { type: "ephemeral" },
     };
 
-    const aiResponse = await this.client.messages.create(requsetOptions);
+    const aiResponse = (await this.client.messages.create(
+      requsetOptions,
+    )) as Anthropic.Messages.Message;
     const content = (aiResponse.content[0] as Anthropic.TextBlock).text;
     console.log(content);
 
