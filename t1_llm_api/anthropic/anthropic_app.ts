@@ -22,4 +22,4 @@ const anthropicCustomClient = new CustomAnthropicAIClient(
   DEFAULT_SYSTEM_PROMPT,
 );
 
-start(false, anthropicClient);
+start(true, anthropicClient);

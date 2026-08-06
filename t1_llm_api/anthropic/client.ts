@@ -22,12 +22,7 @@ export class AnthropicAIClient extends AIClient {
    */
   constructor(...args: ConstructorParameters<typeof AIClient>) {
     super(...args);
-    //TODO:
-    // - Initialize the Anthropic SDK client https://github.com/anthropics/anthropic-sdk-typescript?tab=readme-ov-file#getting-started
-    // Useful links with request/response samples:
-    //   - https://docs.anthropic.com/en/api/overview
-    //   - https://docs.anthropic.com/en/api/messages
-    throw new Error("Not implemented.");
+    this.client = new Anthropic({ apiKey: this.apiKey });
   }
 
   /**
@@ -41,11 +36,23 @@ export class AnthropicAIClient extends AIClient {
    * The response is printed to stdout before being returned.
    */
   response = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // - Call the SDK client (use system parameter for system prompt)
-    // - Print the response to console
-    // - Return an ASSISTANT Message
-    throw new Error("Not implemented.");
+    const requsetOptions: Anthropic.MessageCreateParamsNonStreaming = {
+      model: this.modelName,
+      system: this.systemPrompt,
+      messages: messages.map((msg) => ({
+        ...msg,
+        role: msg.role === "user" ? "user" : "assistant",
+      })),
+      max_tokens: 100,
+      temperature: 0.3,
+      cache_control: { type: "ephemeral" },
+    };
+
+    const aiResponse = await this.client.messages.create(requsetOptions);
+    const content = (aiResponse.content[0] as Anthropic.TextBlock).text;
+    console.log(content);
+
+    return new Message(Role.ASSISTANT, content);
   };
 
   /**
@@ -61,10 +68,29 @@ export class AnthropicAIClient extends AIClient {
    * Each delta is printed to stdout as it arrives for real-time display.
    */
   streamResponse = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // - Call the SDK client with streaming (use system parameter for system prompt)
-    // - Listen for text events and write to stdout
-    // - Return the assembled ASSISTANT Message
-    throw new Error("Not implemented.");
+    const requestOptions: Anthropic.MessageCreateParamsStreaming = {
+      model: this.modelName,
+      system: this.systemPrompt,
+      messages: messages as Anthropic.MessageParam[],
+      stream: true,
+      max_tokens: 100,
+      cache_control: { type: "ephemeral" },
+    };
+
+    let deltaContents: Array<string> = [];
+    const stream = await this.client.messages.create(requestOptions);
+
+    for await (const event of stream) {
+      if (
+        event.type === "content_block_delta" &&
+        event.delta.type === "text_delta"
+      ) {
+        deltaContents.push(event.delta.text);
+        process.stdout.write(event.delta.text);
+      }
+    }
+
+    process.stdout.write("\n");
+    return new Message(Role.ASSISTANT, deltaContents.join(""));
   };
 }
