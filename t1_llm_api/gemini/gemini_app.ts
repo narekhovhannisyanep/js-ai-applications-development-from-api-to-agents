@@ -22,4 +22,4 @@ const geminiCustomClient = new CustomGeminiAIClient(
   DEFAULT_SYSTEM_PROMPT,
 );
 
-start(true, geminiClient);
+start(true, geminiCustomClient);

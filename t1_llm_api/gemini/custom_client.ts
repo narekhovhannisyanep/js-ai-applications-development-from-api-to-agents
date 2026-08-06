@@ -1,3 +1,5 @@
+import type { Interactions } from "@google/genai";
+
 import AIClient from "../base_client";
 
 import { Message, Role } from "../../commons";
@@ -10,7 +12,6 @@ import { Message, Role } from "../../commons";
  * Server-Sent Events (SSE) streaming format.
  */
 export class CustomGeminiAIClient extends AIClient {
-
   /**
    * Sends a non-streaming request using a raw HTTP POST to the Gemini API.
    *
@@ -20,18 +21,68 @@ export class CustomGeminiAIClient extends AIClient {
    * @param messages Conversation history sent to the model.
    * @returns The AI response as a single message.
    */
+  private currentInteractionId: string | undefined = undefined;
+
   response = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // https://ai.google.dev/gemini-api/docs/text-generation
-    // - Prepare headers with api key and content type
-    // - Convert messages using this._toGeminiContents(messages)
-    // - Add System prompt
-    // - Execute post request to AI API (use `fetch`)
-    // - Parse response
-    // - Print response to console
-    // - Return ASSISTANT message
-    throw new Error("Not implemented.");
-  }
+    const headers = {
+      "Content-Type": "application/json",
+      "x-goog-api-key": this.apiKey,
+    };
+
+    const requestData: Interactions.CreateModelInteractionParamsNonStreaming = {
+      model: this.modelName,
+      system_instruction: this.systemPrompt,
+      input: messages.at(-1)?.content ?? "",
+      previous_interaction_id: this.currentInteractionId,
+      generation_config: {
+        temperature: 0,
+      },
+    };
+
+    try {
+      const response = await fetch(this.endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestData),
+      });
+
+      if (response.status !== 200) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status} ${errorText}`);
+      }
+
+      const data = (await response.json()) as Interactions.Interaction;
+
+      if (data.id) {
+        this.currentInteractionId = data.id;
+      }
+
+      let content = "";
+
+      outer: for (const step of data.steps ?? []) {
+        if (step.type === "model_output") {
+          for (const contentPart of step.content ?? []) {
+            if (contentPart.type === "text") {
+              content = contentPart.text;
+              break outer;
+            }
+          }
+        }
+      }
+
+      if (!content) {
+        console.warn(
+          "Gemini returned an empty interaction step. Check safety settings.",
+        );
+      }
+
+      console.log(content);
+      return new Message("model", content);
+    } catch (err) {
+      console.error(`Critical Client Network Error: ${err}`);
+      throw err;
+    }
+  };
 
   /**
    * Sends a streaming request using raw HTTP with Server-Sent Events (SSE).
@@ -44,28 +95,76 @@ export class CustomGeminiAIClient extends AIClient {
    * @returns The final aggregated AI message after the stream completes.
    */
   streamResponse = async (messages: Array<Message>): Promise<Message> => {
-    //TODO:
-    // https://ai.google.dev/gemini-api/docs/text-generation
-    // - Prepare headers with api key and content type
-    // - Convert messages using this._toGeminiContents(messages)
-    // - Add System prompt
-    // - Execute post request to AI API (use `fetch`)
-    // - Handle stream with chunks
-    // - Parse response
-    // - Print chunks to console
-    // - Return ASSISTANT message
-    throw new Error("Not implemented.");
-  }
+    const headers = {
+      "Content-Type": "application/json",
+      "x-goog-api-key": this.apiKey,
+    };
 
-  /**
-   * Converts Message objects to Gemini's content dictionary format.
-   *
-   * @param messages Conversation messages to convert.
-   * @returns Messages formatted as Gemini content objects.
-   */
-  private _toGeminiContents = (messages: Array<Message>): Array<{role: string, parts: Array<{text: string}> }> => {
-    //TODO:
-    // - Map each message to an object with role and parts: [{text: message.content}]
-    throw new Error("Not implemented.");
-  }
+    const requestData: Interactions.CreateModelInteractionParamsStreaming = {
+      model: this.modelName,
+      system_instruction: this.systemPrompt,
+      input: messages.at(-1)?.content ?? "",
+      previous_interaction_id: this.currentInteractionId,
+      generation_config: {
+        temperature: 0,
+      },
+      stream: true,
+    };
+
+    try {
+      const response = await fetch(this.endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status} ${errorText}`);
+      }
+
+      if (!response.body) {
+        throw new Error("Response body is missing.");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      const contents: Array<string> = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          if (line === "data: [DONE]") break;
+
+          const data = JSON.parse(
+            line.slice(6),
+          ) as Interactions.InteractionSSEEvent;
+
+          if (data.event_type === "interaction.created") {
+            this.currentInteractionId = data.interaction.id;
+            continue;
+          }
+
+          if (data.event_type === "step.delta" && data.delta.type === "text") {
+            contents.push(data.delta.text);
+            process.stdout.write(data.delta.text);
+          }
+        }
+      }
+
+      process.stdout.write("\n");
+      return new Message("model", contents.join(""));
+    } catch (err) {
+      console.error("Critical Client Network Error: ", err);
+      throw err;
+    }
+  };
 }

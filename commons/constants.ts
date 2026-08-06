@@ -28,7 +28,7 @@ export const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
 
 // Google Gemini API configuration
 export const GEMINI_ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/models";
+  "https://generativelanguage.googleapis.com/v1beta/interactions";
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
 // User Service API configuration
