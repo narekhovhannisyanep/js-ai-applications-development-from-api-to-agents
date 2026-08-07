@@ -3,7 +3,6 @@ import * as readline from "node:readline/promises";
 import { Conversation, Message, Role } from "../commons";
 import AIClient from "./_clients/base_client";
 
-
 /**
  * Start an interactive chat session with an AI client.
  *
@@ -20,17 +19,22 @@ import AIClient from "./_clients/base_client";
  * @param printOnlyContent If true, prints only the response text; otherwise prints the full response JSON.
  * @param args Optional extra parameters forwarded to the client's response method (e.g. temperature, top_p).
  */
-export async function run(client: AIClient, printRequest: boolean, printOnlyContent: boolean, args?: any) {
+export async function run(
+  client: AIClient,
+  printRequest: boolean,
+  printOnlyContent: boolean,
+  args?: any,
+) {
   const conversation = new Conversation();
   const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
   });
 
-  console.log("Type your question or 'exit' to quit.")
+  console.log("Type your question or 'exit' to quit.");
 
   while (true) {
-    const input = await rl.question(`➡️. `);
+    const input = await rl.question(`➡️  `);
 
     if (input === "exit") {
       console.log("Exiting the chat. Goodbye!");
@@ -40,9 +44,14 @@ export async function run(client: AIClient, printRequest: boolean, printOnlyCont
 
     conversation.addMessage(new Message(Role.USER, input));
 
-    console.log("🤖: ");
+    console.log("🤖  ");
 
-    const aiMessage = await client.response(conversation.messages, printRequest, printOnlyContent, args);
+    const aiMessage = await client.response(
+      conversation.messages,
+      printRequest,
+      printOnlyContent,
+      args,
+    );
     conversation.addMessage(aiMessage);
   }
 }

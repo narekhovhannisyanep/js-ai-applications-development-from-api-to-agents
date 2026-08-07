@@ -1,3 +1,5 @@
+import { Interactions } from "@google/genai";
+
 import AIClient from "./base_client";
 
 import { GEMINI_API_KEY, GEMINI_ENDPOINT, Message, Role } from "../../commons";
@@ -18,8 +20,11 @@ export class GeminiAICLient extends AIClient {
    *
    * @param modelName The specific model identifier to use.
    */
+  currentInteractionId: string | undefined;
+
   constructor(modelName: string) {
     super(GEMINI_ENDPOINT, modelName, GEMINI_API_KEY, API_KEY_HEADER_NAME);
+    this.currentInteractionId = undefined;
   }
 
   /**
@@ -28,12 +33,14 @@ export class GeminiAICLient extends AIClient {
    * @param messages The conversation messages to convert.
    * @returns Messages in Gemini's Content format.
    */
-  private _toGeminiContents = (messages: Array<Message>): Array<{role: string, parts: Array<{text: string}> }> => {
-    return messages.map(message => ({
+  private _toGeminiContents = (
+    messages: Array<Message>,
+  ): Array<{ role: string; parts: Array<{ text: string }> }> => {
+    return messages.map((message) => ({
       role: message.role,
-      parts: [{text: message.content}],
+      parts: [{ text: message.content }],
     }));
-  }
+  };
 
   /**
    * Get a synchronous response from Google's Gemini API.
@@ -46,50 +53,72 @@ export class GeminiAICLient extends AIClient {
    *
    * Note: Gemini requires a model-specific URL and wraps generation settings in a generationConfig object.
    */
-  response = async (messages: Array<Message>, printRequest: boolean, printOnlyContent: boolean, args?: any): Promise<Message> => {
+  response = async (
+    messages: Array<Message>,
+    printRequest: boolean,
+    printOnlyContent: boolean,
+    args?: any,
+  ): Promise<Message> => {
     const headers = {
       "Content-Type": "application/json",
       [API_KEY_HEADER_NAME]: this.apiKey,
     };
 
-    const url = `${this.endpoint}/${this.modelName}:generateContent`;
-    const requestData: Record<string, unknown> = {
-      contents: this._toGeminiContents(messages),
-      generationConfig: args?.["generationConfig"] || { maxOutputTokens: 1024 }
+    const url = this.endpoint;
+
+    const requestData: Interactions.CreateModelInteractionParamsNonStreaming = {
+      model: this.modelName,
+      input: messages.at(-1)?.content ?? "",
+      ...args,
     };
+
+    if (this.currentInteractionId) {
+      requestData.previous_interaction_id = this.currentInteractionId;
+    }
+
+    if (!requestData.generation_config) {
+      requestData.generation_config = { max_output_tokens: 1024 };
+    }
 
     const response = await fetch(url, {
       headers,
       method: "POST",
-      body: JSON.stringify(requestData)
+      body: JSON.stringify(requestData),
     });
 
-    if(args?.["safetySettings"]) {
-      requestData["safetySettings"] = args?.["safetySettings"];
-    }
-
     if (printRequest) {
-      this._printRequest(requestData, headers);
+      this._printRequest(requestData as Record<string, any>, headers);
     }
 
+    if (response.status !== 200) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
 
-    if (response.status === 200) {
-      interface GeminiResponse {
-        candidates: { content: { parts: { text: string }[] } }[];
-      }
-      const result = await response.json() as GeminiResponse;
-      const message = result.candidates[0].content.parts
-        .map((part: { text: string }) => part.text || "")
-        .join("");
+    interface GeminiResponse {
+      id: string;
+      steps: { type: string; content: { type: string; text: string }[] }[];
+    }
 
-      if (printOnlyContent) {
-        console.log(message);
-      } else {
-        this._printResponse(JSON.stringify(result, null, 2));
-      }
-      return new Message(Role.ASSISTANT, message);
+    const result = (await response.json()) as GeminiResponse;
+
+    if (result.id) {
+      this.currentInteractionId = result.id;
+    }
+
+    const textConstents =
+      result.steps.find((step) => step.type === "model_output")?.content ?? [];
+
+    const message =
+      textConstents.find((textContent) => textContent.type === "text")?.text ??
+      "";
+
+    if (printOnlyContent) {
+      console.log(message);
     } else {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      this._printResponse(JSON.stringify(result, null, 2));
     }
+
+    return new Message(Role.ASSISTANT, message);
   };
 }
