@@ -3,7 +3,9 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "strict": true,
@@ -14,7 +16,7 @@
     "isolatedModules": true,
     "allowJs": true,
     "checkJs": false,
-    "baseUrl": "."
+    // "baseUrl": "."
   },
   "include": [
     "commons/**/*",
@@ -38,4 +40,3 @@
     "**/node_modules/**"
   ]
 }
-
