@@ -197,7 +197,7 @@ const main = async (rag: MicrowaveRAG) => {
     await rag.ready;
 
     try {
-      const context = await rag.retrieveContext(input, 5, 1);
+      const context = await rag.retrieveContext(input, 5, 1.5);
       const augmentedPrompt = rag.augmentPrompt(context, input);
       const llmMessage = await rag.generateAnswer(augmentedPrompt);
     } catch (error) {
